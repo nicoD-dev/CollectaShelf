@@ -8,6 +8,8 @@ import { useEffect, useState } from 'react';
 import {useNavigation, createStaticNavigation, StaticParamList} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+{/* Pantalla de galerias es su propio archivo */}
+import GalleryScreen from './GalleryScreen';
 
 
 {/*Clave para guardar la carpeta principal de la aplicacion */}
@@ -67,7 +69,7 @@ function SetupScreen() {
   return (
     <View style={styles.container}>
       <Text>Welcome to CollectaShelf</Text>
-      {/* navigate('Folders') abre la pantalla folders*/}
+      {/* Crea la carpeta principal y navigate('Login') abre esa pantalla*/}
       <Button title='Crear galeria' onPress={() => accesoAlmacenamiento(() => navigation.navigate('Login'))}></Button>
     </View>
   )
@@ -84,25 +86,17 @@ function LoginScreen() {
       Alert.alert('Error', 'No se encontro la carpeta principal');
       return;
     }
-    navigation.navigate('Folders');
+    navigation.navigate('Gallery', {folderURI: rootURI});
   }
 
   return (
     <View style={styles.container}>
       <Text>Login</Text>
-      <Button title='Entrar' onPress={() => navigation.navigate('Folders')}></Button>
+      <Button title='Entrar' onPress={entrar}></Button>
     </View>
   );  
 }
 
-// Pantalla con "galerias" creadas por el usuario
-function FolderScreen() {
-  return (
-    <View style={styles.container}>
-      <Text>Abre tus colecciones</Text>
-    </View>
-  );
-}
 
 {/*Lista de pantallas de la app y sus titulos*/}
 const screens = {
@@ -110,8 +104,8 @@ const screens = {
     screen: SetupScreen,
     options: {title: 'Welcome to CollectaShelf!', headerBackVisible: false},
   },
-  Folders: {
-    screen: FolderScreen,
+  Gallery: {
+    screen: GalleryScreen,
     options: {title: 'Mis colecciones'},
   },
   Login: {
