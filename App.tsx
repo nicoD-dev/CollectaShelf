@@ -10,6 +10,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 {/* Pantalla de galerias es su propio archivo */}
 import GalleryScreen from './GalleryScreen';
+import CameraScreen from './CameraScreen';
 
 
 {/*Clave para guardar la carpeta principal de la aplicacion */}
@@ -111,6 +112,10 @@ const screens = {
   Login: {
     screen: LoginScreen,
     options: {title: 'Login',  headerBackVisible: false}
+  },
+    Camera: {
+    screen: CameraScreen,
+    options: {title: 'Camara'},
   },
 };
 
