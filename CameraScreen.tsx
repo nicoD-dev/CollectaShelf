@@ -54,7 +54,8 @@ export default function CameraScreen({ route }: Props) {
         return (
             <View style={styles.container}>
                 <Text style={styles.message}>Se necesita permiso para usar la camara</Text>
-                <Button title='Dar permiso' onPress={requestPermission}/>
+                <View style={styles.button}><Button title='Dar permiso' onPress={requestPermission}/></View>
+                
             </View>
         );
     }
@@ -84,6 +85,7 @@ const styles = StyleSheet.create({
   },
   button: {
     padding: 20,
-    height: 120
+    height: 120,
+    alignSelf: 'center'
   },
 });

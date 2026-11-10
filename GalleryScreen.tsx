@@ -149,6 +149,51 @@ function cancelMove() {
     setSelected([]);
 }
 
+{/* Copia un archivo o una carpeta completa, incluyendo sus subcarpetas */}
+async function copyItem(uri: string, destination: string, newName?: string) {
+    {/* Chequea si el elemento es una carpeta */}
+    if (await isFolder(uri)) {
+        {/* Mantiene el nombre original en caso de error, usando coalescing operator */}
+        const folderTargetName = newName ?? folderName(uri);
+        
+        const newFolder =
+            await FileSystem.StorageAccessFramework.makeDirectoryAsync(
+                destination,
+                folderTargetName
+            );
+
+        {/* Obtiene todos los elementos que contiene la carpeta */}
+        const contents =
+            await FileSystem.StorageAccessFramework.readDirectoryAsync(uri);
+
+        for (const item of contents) {
+            {/* Se pasa 'item' como origen y 'newFolder' como destino */}
+            await copyItem(item, newFolder);
+        }
+    } else {
+        {/* Obtiene el nombre completo y el tipo de archivo */}
+        const fullName = newName ?? folderName(uri);
+        const mime = fileCheck(fullName);
+
+        const nameWithoutExtension = fullName.substring(0, fullName.lastIndexOf('.')) || fullName;
+
+        const newFile =
+            await FileSystem.StorageAccessFramework.createFileAsync(
+                destination,
+                nameWithoutExtension,
+                mime
+            );
+
+        const content = await FileSystem.readAsStringAsync(uri, {
+            encoding: FileSystem.EncodingType.Base64
+        });
+
+        await FileSystem.writeAsStringAsync(newFile, content, {
+            encoding: FileSystem.EncodingType.Base64
+        });
+    }
+}
+
 const [moving, setMoving] = useState(false);
 
 {/* Se mueve a otra carpeta lo seleccionado */}
@@ -157,45 +202,7 @@ async function paste() {
     if (moving) return;
     setMoving(true);
 
-    {/* Copia un archivo o una carpeta completa, incluyendo sus subcarpetas */}
-    async function copyItem(uri: string, destination: string) {
-        {/* Chequea si el elemento es una carpeta */}
-        if (await isFolder(uri)) {
-            const newFolder =
-                await FileSystem.StorageAccessFramework.makeDirectoryAsync(
-                    destination,
-                    folderName(uri)
-                );
-
-            {/* Obtiene todos los elementos que contiene la carpeta */}
-            const contents =
-                await FileSystem.StorageAccessFramework.readDirectoryAsync(uri);
-
-            
-            for (const item of contents) {
-                await copyItem(item, newFolder);
-            }
-        } else {
-            {/* Obtiene el nombre y el tipo de archivo */}
-            const name = folderName(uri);
-            const mime = fileCheck(name);
-
-            const newFile =
-                await FileSystem.StorageAccessFramework.createFileAsync(
-                    destination,
-                    name,
-                    mime
-                );
-
-            const content = await FileSystem.readAsStringAsync(uri, {
-                encoding: FileSystem.EncodingType.Base64
-            });
-
-            await FileSystem.writeAsStringAsync(newFile, content, {
-                encoding: FileSystem.EncodingType.Base64
-            });
-        }
-    }
+    
 
     try {
         {/* Recorre todos los elementos seleccionados para moverlos */}
@@ -232,22 +239,35 @@ const [renameName, setRenameName] = useState('');
 async function renameItem() {
     const uri = selected[0];
     const name = renameName.trim();
-
     if (!name) return;
 
+    {/* Si no cambio el nombre, solo se cierra el popup */}
+    if (name === folderName(uri)) {
+        setRenameVisible(false);
+        return;
+    }
+    {/* Impide barras y nombres que ya existen en esta carpeta */}
+    if (/[\\/]/.test(name)) {
+        Alert.alert('Nombre invalido', 'El nombre no puede contener barras');
+        return;
+    }
+    if (carpetas.some((u) => folderName(u).toLowerCase() === name.toLowerCase())) {
+        Alert.alert('Nombre existente', `Ya existe "${name}"`);
+        return;
+    }
+
     try {
-        if (await isFolder(uri)) {
-            await new Directory(uri).rename(name);
-        } else {
-            await new File(uri).rename(name);
-        }
+        {/* Se copia con el nombre nuevo y despues se borra el original */}
+        await copyItem(uri, folderURI, name);
+        await FileSystem.deleteAsync(uri, { idempotent: true });
 
         setRenameVisible(false);
         setRenameName('');
         setSelected([]);
         await load();
     } catch (error) {
-        Alert.alert('Error', 'No se pudo renombrar');
+        console.error('Error al renombrar', error);
+        Alert.alert('Error', 'No se pudo renombrar. El original se conservo.');
     }
 }
 

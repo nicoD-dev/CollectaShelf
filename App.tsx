@@ -11,7 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 {/* Pantalla de galerias es su propio archivo */}
 import GalleryScreen from './GalleryScreen';
 import CameraScreen from './CameraScreen';
-
+import LoginScreen from './LoginScreen';
 
 {/*Clave para guardar la carpeta principal de la aplicacion */}
 const KEY_ROOT_URI = 'collectashelf:rootFolderURI';
@@ -74,28 +74,6 @@ function SetupScreen() {
       <Button title='Crear galeria' onPress={() => accesoAlmacenamiento(() => navigation.navigate('Login'))}></Button>
     </View>
   )
-}
-
-//Pantalla de login que se ve al iniciar la app
-function LoginScreen() {
-  const navigation =useNavigation();
-
-  // Chequea si hay una carpeta de aplicacion guardada. Si la hay, va a la pantalla de login
-  async function entrar() {
-    const rootURI = await AsyncStorage.getItem(KEY_ROOT_URI);
-    if (!rootURI) {
-      Alert.alert('Error', 'No se encontro la carpeta principal');
-      return;
-    }
-    navigation.navigate('Gallery', {folderURI: rootURI});
-  }
-
-  return (
-    <View style={styles.container}>
-      <Text>Login</Text>
-      <Button title='Entrar' onPress={entrar}></Button>
-    </View>
-  );  
 }
 
 
