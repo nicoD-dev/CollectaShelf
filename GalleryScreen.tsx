@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { StyleSheet ,Text, View, Button, Alert, TextInput, FlatList, Pressable, Modal, Image}  from 'react-native';
+import { useState, useCallback, useRef } from "react";
+import { StyleSheet ,Text, View, Button, Alert, TextInput, FlatList, Pressable, Modal, Image, useWindowDimensions}  from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useNavigation, StackActions, useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -53,6 +53,9 @@ export default function GalleryScreen({ route }: Props) {
     const {folderURI} = route.params;
     {/* Navigation es el objeto que cambia pantalla */}
     const navigation = useNavigation();
+
+    {/* Hace que el visor de imagenes ocupe toda la pantalla (tamaño completo) */}
+    const {width} = useWindowDimensions();
 
     {/* Carpetas que hat dentro de esta, y texto de nombre nuevo*/}
     const [carpetas, setCarpetas] = useState<string[]>([]);
@@ -278,13 +281,23 @@ function isImage(uri: string) {
     return /\.(jpg|jpeg|png|gif|webp)$/i.test(folderName(uri));
 }
 
+{/* Fotos de la carpeta */}
+const images = carpetas.filter(isImage);
+
 {/*Abre la galería de imágenes*/}
 function openImage(uri: string) {
-    const images = carpetas.filter(isImage);
     setImageIndex(images.indexOf(uri));
     setGalleryVisible(true);
 }
 
+{/* Toque corto abre o selecciona si se esta en modo seleccion. Si no abre carpeta */}
+function tap(uri: string) 
+{
+    console.log('tap', folderName(uri), 'isImage:', isImage(uri), 'seleccionados:', selected.length);
+    if (selected.length > 0) toggle(uri);
+    else if (isImage(uri)) openImage(uri);
+    else open(uri);
+}
 
 
 return (
@@ -334,7 +347,7 @@ return (
         keyExtractor={(uri => uri)}
         renderItem={({ item }) => (
              <Pressable 
-             onPress={() => selected.length > 0 ? toggle(item): open(item)}
+             onPress={() => tap(item)}
              onLongPress={() => toggle(item)}
              style={[styles.item, selected.includes(item) && styles.itemSelected]}>
                 <Text style={styles.itemText}>{folderName(item)}</Text>
@@ -376,6 +389,34 @@ return (
                     onPress={renameItem}
                 />
             </View>
+        </View>
+    </View>
+</Modal>
+{/* Visor de fotos a pantalla completa */}
+<Modal
+    visible={galleryVisible} // Se ve cuando galleryvisible == true
+    animationType="fade"
+    onRequestClose={() => setGalleryVisible(false)}  // Boton atras de android, cierra el visor de imagenes
+    >
+    <View style={styles.viewer}>
+        <FlatList
+        data={images} // Imagenes de la carpeta
+        horizontal // Deslizar de costado en lugar de arriba a abajo
+        pagingEnabled // Hace "snap" de foto a foto en lugar de scrollear a medias
+        initialScrollIndex={imageIndex} // Comienza en la foto que se toco
+        getItemLayout={(_photoList, index) => ({ length: width, offset: width * index, index })} // Calcula la posicion de la imagen sin pasar por las anteriores
+        keyExtractor={(uri) => uri} // Identificador de cada foto
+        onMomentumScrollEnd={(e) => setImageIndex(Math.round(e.nativeEvent.contentOffset.x / width))} // Identifica donde se detiene el scroll y actualiza el contador
+        renderItem={({item}) => (
+            <Image source={{uri: item}} style={{width, height: '100%'}} resizeMode="contain"/> 
+            // Contain hace que la foto ocupe el espacio de la pantalla, no mas. Evita que se corte una parte
+        )}
+        onScrollToIndexFailed={() => {}}
+        />
+        {/* Contador de foto actual +1 porque imageIndex inicia en 0 */}
+        <Text style={styles.viewerCounter}>{imageIndex + 1}/{images.length}</Text>
+        <View>
+            <Button title="Cerrar" onPress={() => setGalleryVisible(false)}/>
         </View>
     </View>
 </Modal>
@@ -428,4 +469,7 @@ const styles = StyleSheet.create({
     gap: 20,
     marginBottom: 10,
   },
+  viewer: { flex: 1, backgroundColor: 'black' },
+  viewerCounter: { position: 'absolute', top: 40, alignSelf: 'center', color: 'white', fontSize: 16 },
+  viewerClose: { position: 'absolute', bottom: 40, alignSelf: 'center' },
 });
